@@ -1,0 +1,22 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This Eva home is already configured."
+    },
+    "error": {
+      "cannot_connect": "Could not connect to Eva.",
+      "invalid_auth": "The Eva username or password is incorrect.",
+      "no_homes": "This Eva account has no available homes."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "password": "Password",
+          "username": "Email"
+        },
+        "description": "Connect Home Assistant to the Eva home that already contains your devices. Credentials are stored only in Home Assistant's private configuration storage.",
+        "title": "Connect Eva"
+      }
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "Dette Eva-hjemmet er allerede konfigurert."
+    },
+    "error": {
+      "cannot_connect": "Kunne ikke koble til Eva.",
+      "invalid_auth": "Brukernavnet eller passordet for Eva er feil.",
+      "no_homes": "Eva-kontoen har ingen tilgjengelige hjem."
+    },
+    "step": {
+      "user": {
+        "data": {
+          "password": "Passord",
+          "username": "E-post"
+        },
+        "description": "Koble Home Assistant til Eva-hjemmet som allerede inneholder enhetene dine. Påloggingsinformasjonen lagres bare i Home Assistants private konfigurasjonslager.",
+        "title": "Koble til Eva"
+      }
+    }
+  }
+}
