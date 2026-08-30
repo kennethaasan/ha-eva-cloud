@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from .api import EvaCloudError
 from .const import DOMAIN
 from .coordinator import EvaCloudCoordinator
 from .models import attribute_value, find_device
@@ -58,5 +60,11 @@ class EvaCloudEntity(CoordinatorEntity[EvaCloudCoordinator]):
 
     async def async_write_attribute(self, name: str, value: Any) -> None:
         """Send a write to Eva and update Home Assistant optimistically."""
-        await self.coordinator.api.async_set_attribute(self._device_id, name, value)
+        try:
+            await self.coordinator.api.async_set_attribute(self._device_id, name, value)
+        except EvaCloudError as error:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="write_failed",
+            ) from error
         self.coordinator.async_apply_attribute(self._device_id, name, value)

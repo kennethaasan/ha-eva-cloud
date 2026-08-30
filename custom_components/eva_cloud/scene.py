@@ -6,9 +6,12 @@ from typing import Any
 
 from homeassistant.components.scene import Scene
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import EvaCloudConfigEntry
+from .api import EvaCloudError
+from .const import DOMAIN
 from .const import CONF_HOME_NAME
 from .home_entity import EvaHomeEntity
 
@@ -86,5 +89,11 @@ class EvaMoodScene(EvaHomeEntity, Scene):
 
     async def async_activate(self, **kwargs: Any) -> None:
         """Activate the Eva mood and refresh its state."""
-        await self.coordinator.api.async_activate_mood(self._mood_id)
+        try:
+            await self.coordinator.api.async_activate_mood(self._mood_id)
+        except EvaCloudError as error:
+            raise HomeAssistantError(
+                translation_domain=DOMAIN,
+                translation_key="mood_activation_failed",
+            ) from error
         await self.coordinator.async_request_refresh()

@@ -18,5 +18,32 @@
         "title": "Connect Eva"
       }
     }
+  },
+  "exceptions": {
+    "write_failed": {
+      "message": "Eva did not accept the requested device change"
+    },
+    "mood_activation_failed": {
+      "message": "Eva did not activate the requested mood"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_energy": {"name": "Total energy"},
+      "power": {"name": "Power"},
+      "phase_1_current": {"name": "Phase 1 current"},
+      "phase_2_current": {"name": "Phase 2 current"},
+      "phase_3_current": {"name": "Phase 3 current"},
+      "energy_this_hour": {"name": "Energy this hour"},
+      "estimated_energy_this_hour": {"name": "Estimated energy this hour"},
+      "temperature": {"name": "Temperature"},
+      "illuminance": {"name": "Illuminance"},
+      "signal_strength": {"name": "Signal strength"},
+      "active_moods": {"name": "Active moods"}
+    },
+    "binary_sensor": {
+      "presence": {"name": "Presence"},
+      "automation": {"name": "Automation {name}"}
+    }
   }
 }

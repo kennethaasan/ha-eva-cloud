@@ -44,7 +44,7 @@ async def async_setup_entry(
 class EvaCloudPresenceSensor(EvaCloudEntity, BinarySensorEntity):
     """Presence state reported by a CTM device."""
 
-    _attr_name = "Presence"
+    _attr_translation_key = "presence"
     _attr_device_class = BinarySensorDeviceClass.OCCUPANCY
 
     def __init__(self, coordinator: Any, device_id: str) -> None:
@@ -67,8 +67,10 @@ class EvaAutomationSensor(EvaHomeEntity, BinarySensorEntity):
         super().__init__(
             coordinator,
             f"rule_{rule_id}",
-            f"Automation {name}",
+            None,
             home_name,
+            translation_key="automation",
+            translation_placeholders={"name": name},
         )
         self._rule_id = rule_id
 

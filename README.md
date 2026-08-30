@@ -12,6 +12,12 @@ The integration provides best-effort mappings for:
 - climate devices, including supported CTM Lyng thermostats; and
 - existing Eva moods as Home Assistant scenes.
 
+## Language support
+
+The config flow and integration-owned entity names are available in English and
+Norwegian Bokmål. Names supplied by Eva itself—such as rooms, devices, moods,
+and automations—remain exactly as they are configured in the Eva app.
+
 ## Status and compatibility
 
 This is community software, is not affiliated with Onics, Eva Smart Home, or
@@ -73,4 +79,3 @@ Hub software version and device model, but redact all household identifiers.
 ## License
 
 Apache-2.0. See [LICENSE](LICENSE).
-

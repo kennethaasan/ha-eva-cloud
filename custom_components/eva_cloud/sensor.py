@@ -40,7 +40,7 @@ class EvaSensorDescription(SensorEntityDescription):
 METER_SENSORS = (
     EvaSensorDescription(
         key="electricityConsumptionSummary",
-        name="Total energy",
+        translation_key="total_energy",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
         state_class=SensorStateClass.TOTAL_INCREASING,
@@ -48,37 +48,37 @@ METER_SENSORS = (
     ),
     EvaSensorDescription(
         key="acTotalPower",
-        name="Power",
+        translation_key="power",
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
     ),
     EvaSensorDescription(
         key="acCurrent",
-        name="Phase 1 current",
+        translation_key="phase_1_current",
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
     ),
     EvaSensorDescription(
         key="acCurrentPhaseB",
-        name="Phase 2 current",
+        translation_key="phase_2_current",
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
     ),
     EvaSensorDescription(
         key="acCurrentPhaseC",
-        name="Phase 3 current",
+        translation_key="phase_3_current",
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
     ),
     EvaSensorDescription(
         key="electricityConsumptionCurrentHourMeasured",
-        name="Energy this hour",
+        translation_key="energy_this_hour",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
     ),
     EvaSensorDescription(
         key="electricityConsumptionCurrentHourEstimate",
-        name="Estimated energy this hour",
+        translation_key="estimated_energy_this_hour",
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
     ),
@@ -115,7 +115,7 @@ async def async_setup_entry(
                     str(device_id),
                     EvaSensorDescription(
                         key="acTotalPower",
-                        name="Power",
+                        translation_key="power",
                         native_unit_of_measurement=UnitOfPower.WATT,
                         device_class=SensorDeviceClass.POWER,
                     ),
@@ -128,7 +128,7 @@ async def async_setup_entry(
                     str(device_id),
                     EvaSensorDescription(
                         key="temperature",
-                        name="Temperature",
+                        translation_key="temperature",
                         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
                         device_class=SensorDeviceClass.TEMPERATURE,
                     ),
@@ -141,7 +141,7 @@ async def async_setup_entry(
                     str(device_id),
                     EvaSensorDescription(
                         key="illuminance",
-                        name="Illuminance",
+                        translation_key="illuminance",
                         native_unit_of_measurement=LIGHT_LUX,
                         device_class=SensorDeviceClass.ILLUMINANCE,
                     ),
@@ -154,7 +154,7 @@ async def async_setup_entry(
                     str(device_id),
                     EvaSensorDescription(
                         key="rssi",
-                        name="Signal strength",
+                        translation_key="signal_strength",
                         native_unit_of_measurement=SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
                         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
                         entity_category=EntityCategory.DIAGNOSTIC,
@@ -168,10 +168,15 @@ class EvaActiveMoodsSensor(EvaHomeEntity, SensorEntity):
     """Summarize the moods matching the current Eva device states."""
 
     _attr_icon = "mdi:palette"
-    _attr_native_unit_of_measurement = "moods"
 
     def __init__(self, coordinator: Any, home_name: str) -> None:
-        super().__init__(coordinator, "active_moods", "Active moods", home_name)
+        super().__init__(
+            coordinator,
+            "active_moods",
+            None,
+            home_name,
+            translation_key="active_moods",
+        )
 
     @property
     def active_moods(self) -> list[str]:
@@ -204,7 +209,6 @@ class EvaCloudSensor(EvaCloudEntity, SensorEntity):
     ) -> None:
         super().__init__(coordinator, device_id, suffix=description.key)
         self.entity_description = description
-        self._attr_name = description.name
 
     @property
     def native_value(self) -> Any:

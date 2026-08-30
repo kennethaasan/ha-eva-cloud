@@ -18,5 +18,32 @@
         "title": "Koble til Eva"
       }
     }
+  },
+  "exceptions": {
+    "write_failed": {
+      "message": "Eva godtok ikke den forespurte enhetsendringen"
+    },
+    "mood_activation_failed": {
+      "message": "Eva aktiverte ikke den valgte stemningen"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_energy": {"name": "Energi totalt"},
+      "power": {"name": "Effekt"},
+      "phase_1_current": {"name": "Strøm fase 1"},
+      "phase_2_current": {"name": "Strøm fase 2"},
+      "phase_3_current": {"name": "Strøm fase 3"},
+      "energy_this_hour": {"name": "Energi denne timen"},
+      "estimated_energy_this_hour": {"name": "Beregnet energi denne timen"},
+      "temperature": {"name": "Temperatur"},
+      "illuminance": {"name": "Belysningsstyrke"},
+      "signal_strength": {"name": "Signalstyrke"},
+      "active_moods": {"name": "Aktive stemninger"}
+    },
+    "binary_sensor": {
+      "presence": {"name": "Tilstedeværelse"},
+      "automation": {"name": "Automatisering {name}"}
+    }
   }
 }
