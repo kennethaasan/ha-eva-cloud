@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.1
+
+- Fix translated home-level sensor and automation names being hidden by an
+  explicitly empty entity name.
+
 ## 0.3.0
 
 - Add English and Norwegian Bokmål translations for every integration-owned

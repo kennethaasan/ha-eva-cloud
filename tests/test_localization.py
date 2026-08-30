@@ -32,6 +32,10 @@ class LocalizationTest(unittest.TestCase):
             bokmal["entity"]["sensor"]["active_moods"]["name"],
         )
 
+    def test_translated_home_entities_do_not_force_an_empty_name(self) -> None:
+        source = (COMPONENT / "home_entity.py").read_text()
+        self.assertIn("if name is not None:", source)
+
 
 if __name__ == "__main__":
     unittest.main()

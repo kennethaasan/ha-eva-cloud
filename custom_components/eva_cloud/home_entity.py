@@ -28,7 +28,8 @@ class EvaHomeEntity(CoordinatorEntity[EvaCloudCoordinator]):
     ) -> None:
         super().__init__(coordinator)
         self._attr_unique_id = unique_id
-        self._attr_name = name
+        if name is not None:
+            self._attr_name = name
         self._attr_translation_key = translation_key
         if translation_placeholders is not None:
             self._attr_translation_placeholders = translation_placeholders
