@@ -40,7 +40,9 @@ The current app API route inventory is documented in
 [`docs/eva-api.openapi.yaml`](docs/eva-api.openapi.yaml). It is an observed,
 community-maintained reference for Eva Android app 2.4.5 (version code 499),
 not an official API contract. Payload schemas are deliberately partial and
-must be rechecked when Eva releases a new app or changes its API.
+must be rechecked when Eva releases a new app or changes its API. The practical
+sequence for editing and activating a mood is in
+[`docs/eva-moods.md`](docs/eva-moods.md).
 
 ## Installation
 

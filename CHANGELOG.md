@@ -4,6 +4,8 @@
 
 - Add an observed OpenAPI reference for the current Eva Android API routes,
   headers, and partial payload schemas.
+- Document the observed mood edit, verification, activation, and live-device
+  value workflow.
 
 ## 0.3.1
 

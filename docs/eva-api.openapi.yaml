@@ -13,6 +13,16 @@ info:
     intentionally partial, and write operations may be asynchronous. Verify
     behavior against a test home before changing the integration.
 
+    To edit an existing mood, first GET the home and locate the mood by its
+    id, then PATCH /homes/{homeId}/moods/{moodId} with the edited mood object.
+    The safest observed-app-compatible form is a complete object preserving
+    the current name, icon, room, deviceIds, and groupIds. Eva normally returns
+    202 with an actionId; GET the home again to verify the saved mood. PATCH
+    changes the mood definition or membership, while POST /activate applies an
+    existing mood. The generic device-attribute route changes a live device;
+    this reference does not claim that such a live change also updates the
+    values stored in a mood. Per-device mood-value payloads remain unconfirmed.
+
     Do not put Eva credentials, access tokens, home IDs, device IDs, or other
     household identifiers in this file or in issue reports.
   contact:
@@ -67,6 +77,33 @@ x-eva-common-headers:
       x-required-when: home-scoped
       example: a
       description: For home-scoped calls, the current client uses the first character of homeId.
+x-eva-mood-edit-flow:
+  status: observed-partial
+  description: |-
+    Practical sequence for changing an existing mood without committing
+    household identifiers to documentation. The exact server-side schema is
+    app-version dependent; preserve fields returned by Eva and verify after
+    every asynchronous write.
+  steps:
+    - step: 1
+      action: GET /homes/{homeId}
+      purpose: Read the current mood and preserve its complete definition.
+    - step: 2
+      action: PATCH /homes/{homeId}/moods/{moodId}
+      purpose: Send the edited name/icon/room/deviceIds/groupIds object as JSON.
+    - step: 3
+      action: Wait for the 202 action response
+      purpose: Record actionId if returned; acceptance is not confirmation of persistence.
+    - step: 4
+      action: GET /homes/{homeId}
+      purpose: Confirm the mood now contains the intended definition.
+    - step: 5
+      action: POST /homes/{homeId}/moods/{moodId}/activate
+      purpose: Apply the saved mood; editing and activation are separate operations.
+  cautions:
+    - Do not assume a partial PATCH preserves omitted fields across app versions.
+    - Do not assume changing a live device attribute changes the value stored by a mood.
+    - Use a test mood or test home before changing heating, lighting, or other equipment.
 tags:
   - name: Users
     description: Eva user and household membership operations.
@@ -75,7 +112,11 @@ tags:
   - name: Devices
     description: Device discovery, metadata, attributes, and measurements.
   - name: Moods
-    description: Eva mood creation, editing, activation, and membership.
+    description: |-
+      Eva mood creation, editing, activation, and membership. The observed
+      edit flow is GET home -> locate mood -> PATCH the complete edited mood
+      object -> wait for the asynchronous action -> GET home to verify. Use
+      POST /activate separately to apply the saved mood.
   - name: Rooms and groups
     description: Room ordering and device-group management.
   - name: Rules
@@ -729,6 +770,14 @@ paths:
       tags: [Moods]
       operationId: updateMood
       summary: Update a mood
+      description: |-
+        Observed edit route used by the Eva app. Read the current home first,
+        preserve the complete mood object, change only the intended fields,
+        and send JSON with PATCH. A successful response is normally HTTP 202
+        and may contain an actionId; it is asynchronous, so GET the home again
+        before treating the edit as persisted. This route changes mood
+        metadata and membership. The per-device state/value snapshot format,
+        if distinct from deviceIds/groupIds, is not confirmed by this reference.
       requestBody:
         $ref: '#/components/requestBodies/EditMood'
       responses:
@@ -755,7 +804,11 @@ paths:
       tags: [Moods]
       operationId: activateMood
       summary: Activate a mood
-      description: Existing Eva mood activation route used by the current integration.
+      description: |-
+        Apply an existing saved mood. Activation is separate from editing:
+        PATCH the mood first, verify it with GET /homes/{homeId}, then POST
+        this route. The current integration exposes this operation as a Home
+        Assistant scene.
       responses:
         '202':
           $ref: '#/components/responses/Accepted'
@@ -1262,6 +1315,16 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/EditMood'
+          examples:
+            completeMoodEdit:
+              summary: Rename a mood while preserving its membership
+              value:
+                name: Hjemme
+                icon: home
+                roomId: redacted-room-id
+                deviceIds:
+                  - redacted-device-id
+                groupIds: []
   responses:
     Accepted:
       description: Accepted for asynchronous processing.
@@ -1338,7 +1401,14 @@ components:
           items:
             type: string
       required: [name, deviceIds]
-      description: Observed mood edit shape; additional fields may be required by Eva.
+      description: |-
+        Observed JSON shape used when the Eva app creates or edits a mood.
+        For an update, preserve the fields returned by GET /homes/{homeId}
+        rather than sending only the changed property. The path moodId is the
+        authoritative identifier; the optional body moodId, when present,
+        should match it. deviceIds and groupIds describe membership. This
+        schema does not establish a generic field for per-device setpoints or
+        dimmer levels; those values remain app-version dependent.
     HomeList:
       type: object
       additionalProperties: true
@@ -1459,6 +1529,10 @@ components:
           type: string
         icon:
           type: string
+        roomId:
+          type: string
+        active:
+          type: boolean
         deviceIds:
           type: array
           items:
