@@ -1,0 +1,1473 @@
+openapi: 3.1.0
+info:
+  title: Eva Smart Home API (observed)
+  version: 2.4.5-observed
+  description: |-
+    Community-maintained OpenAPI reference for the undocumented HTTP API used
+    by the Eva Smart Home Android application.
+
+    This document was reconstructed from the Eva app package
+    no.evasmart.app, version 2.4.5 (version code 499), and the calls used by
+    this Home Assistant integration. It is not an official Onics/Eva API
+    specification. Routes are observed rather than guaranteed, schemas are
+    intentionally partial, and write operations may be asynchronous. Verify
+    behavior against a test home before changing the integration.
+
+    Do not put Eva credentials, access tokens, home IDs, device IDs, or other
+    household identifiers in this file or in issue reports.
+  contact:
+    name: ha-eva-cloud community
+    url: https://github.com/kennethaasan/ha-eva-cloud
+  license:
+    name: Apache-2.0
+    identifier: Apache-2.0
+  x-eva-app-package: no.evasmart.app
+  x-eva-app-version: 2.4.5
+  x-eva-app-version-code: 499
+  x-observed-at: 2026-09-03
+  x-source-notes:
+    - Current integration constants and live API behavior.
+    - Retrofit service route annotations in the current Eva Android app.
+    - Public Eva material is linked as user documentation, not treated as an API contract.
+servers:
+  - url: https://home.api.evasmart.no
+    description: Eva home/device API
+  - url: https://user.api.evasmart.no
+    description: Eva user/authentication API
+externalDocs:
+  description: Official Eva user documentation
+  url: https://hjelp.evasmart.no/hc/no/categories/12515843077649-Brukerveiledninger
+security:
+  - evaBasicAuth: []
+x-eva-common-headers:
+  description: |-
+    The current Android client sends these headers on API requests. The home
+    API also receives X-Partition-Key, set by the client to the first
+    character of the home ID. Header names and values are app-client details,
+    not user secrets.
+  headers:
+    X-Client-ID:
+      required: true
+      example: Android-2.4.5_499-evaSmartProd
+      description: Eva client identifier used by the current Android app.
+    X-Client-Brand:
+      required: true
+      example: eva
+      description: Client brand identifier.
+    X-Client-Language:
+      required: true
+      example: nb
+      description: BCP-47 language tag selected by the client.
+    X-Schema-Version:
+      required: true
+      example: '7'
+      description: Eva API schema version selected by the client.
+    X-Partition-Key:
+      required: false
+      x-required-when: home-scoped
+      example: a
+      description: For home-scoped calls, the current client uses the first character of homeId.
+tags:
+  - name: Users
+    description: Eva user and household membership operations.
+  - name: Homes
+    description: Eva home configuration and profiles.
+  - name: Devices
+    description: Device discovery, metadata, attributes, and measurements.
+  - name: Moods
+    description: Eva mood creation, editing, activation, and membership.
+  - name: Rooms and groups
+    description: Room ordering and device-group management.
+  - name: Rules
+    description: Eva automation rule management.
+  - name: Gateway
+    description: Eva Hub gateway operations.
+  - name: Notifications
+    description: Push-token and notification-setting operations.
+  - name: Support
+    description: Support access and troubleshooting operations.
+  - name: Features
+    description: Eva feature flags.
+paths:
+  /users/{username}:
+    servers:
+      - url: https://user.api.evasmart.no
+    parameters:
+      - $ref: '#/components/parameters/Username'
+    get:
+      tags: [Users]
+      operationId: getUser
+      summary: Get a user
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Users]
+      operationId: updateUser
+      summary: Update a user
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /users/auth:
+    servers:
+      - url: https://user.api.evasmart.no
+    post:
+      tags: [Users]
+      operationId: authenticateUser
+      summary: Authenticate a user
+      description: The exact response and token/session behavior is app-version dependent.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /users:
+    servers:
+      - url: https://user.api.evasmart.no
+    post:
+      tags: [Users]
+      operationId: createUser
+      summary: Create a user
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /users/{email}/resendVerifyEmail:
+    servers:
+      - url: https://user.api.evasmart.no
+    parameters:
+      - $ref: '#/components/parameters/Email'
+    post:
+      tags: [Users]
+      operationId: resendUserVerificationEmail
+      summary: Resend verification email
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /users/{username}/sendPasswordResetMail:
+    servers:
+      - url: https://user.api.evasmart.no
+    parameters:
+      - $ref: '#/components/parameters/Username'
+    post:
+      tags: [Users]
+      operationId: sendPasswordResetMail
+      summary: Send a password reset email
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /users/{username}/password:
+    servers:
+      - url: https://user.api.evasmart.no
+    parameters:
+      - $ref: '#/components/parameters/Username'
+    patch:
+      tags: [Users]
+      operationId: updatePassword
+      summary: Change a user's password
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes:
+    x-observed-app-route: /homes/
+    description: The current app uses a trailing slash; this normalized path represents the same collection endpoint.
+    post:
+      tags: [Homes]
+      operationId: createHome
+      summary: Create a home
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    get:
+      tags: [Homes]
+      operationId: listHomes
+      summary: List homes for the current user
+      responses:
+        '200':
+          description: Home list or home summaries.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HomeList'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    get:
+      tags: [Homes]
+      operationId: getHome
+      summary: Get a home and its devices
+      responses:
+        '200':
+          description: Home state and configuration.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Home'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Homes]
+      operationId: updateHome
+      summary: Update a home
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Homes]
+      operationId: deleteHome
+      summary: Delete a home
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/activeProfile:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    patch:
+      tags: [Homes]
+      operationId: updateActiveProfile
+      summary: Update the active home profile
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/arc/home:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    patch:
+      tags: [Homes]
+      operationId: updateHomeArc
+      summary: Update home ARC settings
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/settings:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    patch:
+      tags: [Homes]
+      operationId: updateHomeSettings
+      summary: Update home settings
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/users/{email}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/Email'
+    delete:
+      tags: [Users]
+      operationId: removeHomeUser
+      summary: Remove a user from a home
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Users]
+      operationId: updateHomeUser
+      summary: Update a home user's permissions
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/users:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Users]
+      operationId: addHomeUser
+      summary: Add a user to a home
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/users/{email}/pin:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/Email'
+    patch:
+      tags: [Users]
+      operationId: updateHomeUserPin
+      summary: Update a user's home PIN
+      description: The current app annotation was observed without a leading slash; normalized here as an OpenAPI path.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/transfer:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Users]
+      operationId: transferHome
+      summary: Transfer home ownership
+      description: Destructive/account-impacting operation; listed from the app client, not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/roomOrder:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Rooms and groups]
+      operationId: updateRoomOrder
+      summary: Update room order
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/rooms:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Rooms and groups]
+      operationId: createRoom
+      summary: Create a room
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/rooms/{roomId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/RoomId'
+    patch:
+      tags: [Rooms and groups]
+      operationId: updateRoom
+      summary: Update a room
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Rooms and groups]
+      operationId: deleteRoom
+      summary: Delete a room
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/groups:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Rooms and groups]
+      operationId: createGroup
+      summary: Create a device group in a room
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/groups/{groupId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/GroupId'
+    patch:
+      tags: [Rooms and groups]
+      operationId: updateGroup
+      summary: Update a device group
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Rooms and groups]
+      operationId: deleteGroup
+      summary: Delete a device group
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/groups/{groupId}/attributes/{name}/{value}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/GroupId'
+      - $ref: '#/components/parameters/AttributeName'
+      - $ref: '#/components/parameters/AttributeValue'
+    patch:
+      tags: [Rooms and groups]
+      operationId: updateGroupAttribute
+      summary: Set a group attribute
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/scan:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Devices]
+      operationId: scanForDevices
+      summary: Scan for devices
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/cancelScan:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Devices]
+      operationId: cancelDeviceScan
+      summary: Cancel a device scan
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{dimmer_deviceId}/scanDimmerRemote:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DimmerDeviceId'
+    post:
+      tags: [Devices]
+      operationId: scanDimmerRemote
+      summary: Scan a dimmer remote
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}/{attribute}/{value}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Attribute'
+      - $ref: '#/components/parameters/AttributeValue'
+    post:
+      tags: [Devices]
+      operationId: setDeviceAttribute
+      summary: Set a device attribute
+      description: Primary device-control route used by the current Home Assistant integration.
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+    patch:
+      tags: [Devices]
+      operationId: updateDevice
+      summary: Update device metadata
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Devices]
+      operationId: deleteDevice
+      summary: Remove a device
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}/attributes/{attribute}/{value}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/Attribute'
+      - $ref: '#/components/parameters/AttributeValue'
+    patch:
+      tags: [Devices]
+      operationId: setDeviceAttributeFallback
+      summary: Set a device attribute (fallback route)
+      description: Fallback route used when the primary POST route returns HTTP 404 or 405.
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}/attributes/doorLockAccesses:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+    post:
+      tags: [Devices]
+      operationId: createDoorLockAccess
+      summary: Create door-lock access
+      description: Door-lock access route observed in the app client; not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}/attributes/doorLockAccesses/{accessId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+      - $ref: '#/components/parameters/AccessId'
+    patch:
+      tags: [Devices]
+      operationId: updateDoorLockAccess
+      summary: Update door-lock access
+      description: Door-lock access route observed in the app client; not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Devices]
+      operationId: deleteDoorLockAccess
+      summary: Delete door-lock access
+      description: Destructive door-lock access operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/attributes/measurements:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    get:
+      tags: [Devices]
+      operationId: getMeasurements
+      summary: Get device measurements
+      description: The app method supplies additional query values; their names and semantics are not fully confirmed yet.
+      responses:
+        '200':
+          description: Measurement payload.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MeasurementResponse'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}/identify:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+    post:
+      tags: [Devices]
+      operationId: identifyDevice
+      summary: Identify a device
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/devices/{deviceId}/updateSoftware:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/DeviceId'
+    post:
+      tags: [Devices]
+      operationId: updateDeviceSoftware
+      summary: Update device software
+      description: Potentially disruptive operation; listed from the app client, not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/moods:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Moods]
+      operationId: createMood
+      summary: Create a home mood
+      requestBody:
+        $ref: '#/components/requestBodies/EditMood'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/moods/{moodId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/MoodId'
+    patch:
+      tags: [Moods]
+      operationId: updateMood
+      summary: Update a mood
+      requestBody:
+        $ref: '#/components/requestBodies/EditMood'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Moods]
+      operationId: deleteMood
+      summary: Delete a mood
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/moods/{moodId}/activate:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/MoodId'
+    post:
+      tags: [Moods]
+      operationId: activateMood
+      summary: Activate a mood
+      description: Existing Eva mood activation route used by the current integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/rooms/{roomId}/moods:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/RoomId'
+    post:
+      tags: [Moods]
+      operationId: createRoomMood
+      summary: Create a room mood
+      requestBody:
+        $ref: '#/components/requestBodies/EditMood'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/moods/{moodId}/devices/{deviceId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/MoodId'
+      - $ref: '#/components/parameters/DeviceId'
+    delete:
+      tags: [Moods]
+      operationId: removeDeviceFromMood
+      summary: Remove a device from a mood
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/rules:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Rules]
+      operationId: createRule
+      summary: Create a home rule
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/rules/{ruleId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/RuleId'
+    patch:
+      tags: [Rules]
+      operationId: updateRule
+      summary: Update a home rule
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Rules]
+      operationId: deleteRule
+      summary: Delete a home rule
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/rooms/{roomId}/rules/{ruleId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/RoomId'
+      - $ref: '#/components/parameters/RuleId'
+    patch:
+      tags: [Rules]
+      operationId: updateRoomRule
+      summary: Update a room rule
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/gateway/automaticSoftwareUpdates:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    patch:
+      tags: [Gateway]
+      operationId: updateGatewayAutomaticSoftwareUpdates
+      summary: Update automatic gateway software updates
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /gateways:
+    get:
+      tags: [Gateway]
+      operationId: listGateways
+      summary: List gateways
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/gateway/updateSoftware:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Gateway]
+      operationId: updateGatewaySoftware
+      summary: Update gateway software
+      description: Potentially disruptive operation; listed from the app client, not exercised by this integration.
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /features:
+    get:
+      tags: [Features]
+      operationId: listFeatures
+      summary: List enabled features
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/notificationSettings:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    get:
+      tags: [Notifications]
+      operationId: getNotificationSettings
+      summary: Get home notification settings
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Notifications]
+      operationId: updateNotificationSettings
+      summary: Update home notification settings
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Notifications]
+      operationId: deleteNotificationSettings
+      summary: Delete home notification settings
+      description: Destructive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /currentUser/homes/{homeId}/notificationSettings:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    get:
+      tags: [Notifications]
+      operationId: getCurrentUserNotificationSettings
+      summary: Get current-user notification settings
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Notifications]
+      operationId: updateCurrentUserNotificationSettings
+      summary: Update current-user notification settings
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Notifications]
+      operationId: deleteCurrentUserNotificationSettings
+      summary: Delete current-user notification settings
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /currentUser/homes/{homeId}/notificationSettings/items/{id}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/NotificationItemId'
+    get:
+      tags: [Notifications]
+      operationId: getNotificationSettingItem
+      summary: Get one notification setting item
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      tags: [Notifications]
+      operationId: updateNotificationSettingItem
+      summary: Update one notification setting item
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /currentUser/notificationTokens:
+    servers:
+      - url: https://home.api.evasmart.no
+    post:
+      tags: [Notifications]
+      operationId: registerNotificationToken
+      summary: Register a push notification token
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      tags: [Notifications]
+      operationId: deleteNotificationToken
+      summary: Delete a push notification token
+      requestBody:
+        $ref: '#/components/requestBodies/GenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /currentUser/deleteMe:
+    servers:
+      - url: https://user.api.evasmart.no
+    delete:
+      tags: [Users]
+      operationId: deleteCurrentUser
+      summary: Delete the current user
+      description: Destructive account operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /support/homes:
+    get:
+      tags: [Support]
+      operationId: listSupportHomes
+      summary: List homes available to support access
+      responses:
+        '200':
+          $ref: '#/components/responses/OkObject'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/supportAccess/approve/{email}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/Email'
+    post:
+      tags: [Support]
+      operationId: approveSupportAccess
+      summary: Approve support access
+      description: Account/household access operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/supportAccess/reject/{email}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/Email'
+    post:
+      tags: [Support]
+      operationId: rejectSupportAccess
+      summary: Reject support access
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/supportAccess/request/minutes/{numberOfMinutesOfAccess}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/AccessMinutes'
+    post:
+      tags: [Support]
+      operationId: requestSupportAccess
+      summary: Request temporary support access
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/restartZigBeeCoordinator:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+    post:
+      tags: [Support]
+      operationId: restartZigBeeCoordinator
+      summary: Restart the Zigbee coordinator
+      description: Potentially disruptive operation; listed from the app client, not exercised by this integration.
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+  /homes/{homeId}/troubleshoot/{bugId}:
+    parameters:
+      - $ref: '#/components/parameters/HomeId'
+      - $ref: '#/components/parameters/BugId'
+    post:
+      tags: [Support]
+      operationId: troubleshootHome
+      summary: Submit a troubleshooting report
+      requestBody:
+        $ref: '#/components/requestBodies/OptionalGenericObject'
+      responses:
+        '202':
+          $ref: '#/components/responses/Accepted'
+        default:
+          $ref: '#/components/responses/Error'
+
+components:
+  securitySchemes:
+    evaBasicAuth:
+      type: http
+      scheme: basic
+      description: Eva account credentials. Never store real credentials in this repository.
+  parameters:
+    HomeId:
+      name: homeId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva home identifier.
+    DeviceId:
+      name: deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva device identifier.
+    DimmerDeviceId:
+      name: dimmer_deviceId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva dimmer device identifier as named by the app route.
+    Attribute:
+      name: attribute
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva device attribute name.
+    AttributeName:
+      name: name
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva group attribute name.
+    AttributeValue:
+      name: value
+      in: path
+      required: true
+      allowReserved: true
+      schema:
+        type: string
+      description: Attribute value encoded as a path segment.
+    MoodId:
+      name: moodId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva mood identifier.
+    RoomId:
+      name: roomId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva room identifier.
+    GroupId:
+      name: groupId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva group identifier.
+    RuleId:
+      name: ruleId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva rule identifier.
+    BugId:
+      name: bugId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva troubleshooting/bug identifier.
+    AccessMinutes:
+      name: numberOfMinutesOfAccess
+      in: path
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+      description: Requested support access duration in minutes.
+    NotificationItemId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva notification setting item identifier.
+    AccessId:
+      name: accessId
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva door-lock access identifier.
+    Username:
+      name: username
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Eva username.
+    Email:
+      name: email
+      in: path
+      required: true
+      allowReserved: true
+      schema:
+        type: string
+        format: email
+      description: URL-encoded email address.
+  requestBodies:
+    GenericObject:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericObject'
+    OptionalGenericObject:
+      required: false
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericObject'
+    EditMood:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EditMood'
+  responses:
+    Accepted:
+      description: Accepted for asynchronous processing.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ActionResponse'
+    OkObject:
+      description: Successful response; exact shape varies by endpoint and app version.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GenericObject'
+    Error:
+      description: Eva API error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+  schemas:
+    GenericObject:
+      type: object
+      additionalProperties: true
+      description: Placeholder for an endpoint payload whose complete schema is not confirmed.
+    ActionResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        actionId:
+          type: string
+          description: Asynchronous action identifier returned by observed write calls.
+    ErrorResponse:
+      type: object
+      additionalProperties: true
+      properties:
+        timestamp:
+          type: string
+        status:
+          type: integer
+        error:
+          type: string
+        message:
+          type: string
+        path:
+          type: string
+    AuthRequest:
+      type: object
+      additionalProperties: true
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+          format: password
+      description: Authentication payload; exact fields are app-version dependent.
+    EditMood:
+      type: object
+      additionalProperties: true
+      properties:
+        moodId:
+          type: string
+        name:
+          type: string
+        icon:
+          type: string
+        roomId:
+          type: string
+        deviceIds:
+          type: array
+          items:
+            type: string
+        groupIds:
+          type: array
+          items:
+            type: string
+      required: [name, deviceIds]
+      description: Observed mood edit shape; additional fields may be required by Eva.
+    HomeList:
+      type: object
+      additionalProperties: true
+      properties:
+        homes:
+          type: array
+          items:
+            $ref: '#/components/schemas/HomeSummary'
+    HomeSummary:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    Home:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        rooms:
+          type: array
+          items:
+            $ref: '#/components/schemas/Room'
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+        moods:
+          type: array
+          items:
+            $ref: '#/components/schemas/Mood'
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/Group'
+        gateway:
+          $ref: '#/components/schemas/GenericObject'
+    Room:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/Device'
+    Device:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        type:
+          type: string
+        displayType:
+          type: string
+        online:
+          type: boolean
+        attributes:
+          type: array
+          items:
+            $ref: '#/components/schemas/DeviceAttribute'
+    DeviceAttribute:
+      type: object
+      additionalProperties: true
+      properties:
+        name:
+          type: string
+        value:
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: object
+            - type: array
+            - type: 'null'
+        updatedAt:
+          type: string
+          format: date-time
+        minValue:
+          type: number
+        maxValue:
+          type: number
+        step:
+          type: number
+        options:
+          type: array
+          items: {}
+    Group:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        deviceIds:
+          type: array
+          items:
+            type: string
+    Mood:
+      type: object
+      additionalProperties: true
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        icon:
+          type: string
+        deviceIds:
+          type: array
+          items:
+            type: string
+        groupIds:
+          type: array
+          items:
+            type: string
+    MeasurementResponse:
+      type: object
+      additionalProperties: true
+      description: Measurement response; exact fields and query parameters still need confirmation.

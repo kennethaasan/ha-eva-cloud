@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add an observed OpenAPI reference for the current Eva Android API routes,
+  headers, and partial payload schemas.
+
 ## 0.3.1
 
 - Fix translated home-level sensor and automation names being hidden by an
