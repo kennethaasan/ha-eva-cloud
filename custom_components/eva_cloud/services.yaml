@@ -1,0 +1,17 @@
+set_automation_enabled:
+  name: Set automation enabled
+  description: Enable or disable an existing Eva home automation without changing its schedule or actions.
+  fields:
+    name:
+      name: Automation name
+      description: The exact name shown for the rule in Eva, for example Morgen.
+      required: true
+      example: Morgen
+      selector:
+        text:
+    enabled:
+      name: Enabled
+      description: Whether Eva should run the rule at its existing schedule.
+      required: true
+      selector:
+        boolean:

@@ -25,6 +25,12 @@
 ## 0.2.1
 
 - Improve compatibility with live Eva hubs and CTM Lyng devices.
+## 0.4.1
+
+- Poll Eva directly after asynchronous rule updates so HA observes the
+  confirmed enabled/disabled state instead of its cached coordinator snapshot.
+- Add the service description used by Home Assistant's service registry.
+
 ## 0.4.0
 
 - Add a verified service for enabling or disabling an existing Eva rule by name.

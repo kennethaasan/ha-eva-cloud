@@ -75,16 +75,18 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
         try:
             await runtime.api.async_set_rule_enabled(str(rule["id"]), enabled)
-            # Eva answers asynchronously (normally HTTP 202). Poll the home
-            # snapshot briefly so a vacation automation does not report success
-            # while the old rule state is still cached.
-            for attempt in range(6):
-                await runtime.coordinator.async_request_refresh()
+            # Eva answers asynchronously (normally HTTP 202). Poll the API
+            # snapshot directly so a vacation automation does not report
+            # success while the old rule state is still cached by HA's normal
+            # coordinator interval.
+            for attempt in range(16):
+                if attempt:
+                    await asyncio.sleep(1)
+                snapshot = await runtime.api.async_get_home()
+                runtime.coordinator.async_set_updated_data(snapshot)
                 updated = _find_rule(runtime.coordinator, name)
                 if updated and (updated.get("disabled") is True) == desired_disabled:
                     return
-                if attempt < 5:
-                    await asyncio.sleep(1)
         except Exception as error:
             if isinstance(error, HomeAssistantError):
                 raise

@@ -40,7 +40,7 @@ class LocalizationTest(unittest.TestCase):
         source = (COMPONENT / "__init__.py").read_text()
         self.assertIn('SERVICE_SET_AUTOMATION_ENABLED = "set_automation_enabled"', source)
         self.assertIn('json_body={"disabled": not enabled}', (COMPONENT / "api.py").read_text())
-        self.assertIn("async_request_refresh", source)
+        self.assertIn("async_set_updated_data", source)
 
 
 if __name__ == "__main__":
