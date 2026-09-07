@@ -12,6 +12,12 @@ The integration provides best-effort mappings for:
 - climate devices, including supported CTM Lyng thermostats; and
 - existing Eva moods as Home Assistant scenes.
 
+The integration also exposes the reversible `eva_cloud.set_automation_enabled`
+service. It can enable or disable an existing home rule by its Eva name (for
+example `Morgen`) without changing the rule's schedule, target mood, or device
+membership. The service is intended for guarded vacation-mode automations;
+Home Assistant verifies the new rule state by refreshing the home snapshot.
+
 ## Language support
 
 The config flow and integration-owned entity names are available in English and
@@ -69,9 +75,10 @@ change the same devices. Avoid competing automations and begin with conservative
 setpoints. Heating and electrical equipment must retain its physical safety
 controls.
 
-The integration writes only known, mapped attributes and existing mood
-activation routes. It does not pair or remove Zigbee devices, change hub
-firmware, create Eva automations, or manage alarm access.
+The integration writes only known, mapped attributes, existing mood activation
+routes, and the reversible enabled/disabled flag of an existing rule. It does
+not pair or remove Zigbee devices, change hub firmware, create or delete Eva
+automations, or manage alarm access.
 
 ## Privacy
 

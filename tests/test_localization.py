@@ -36,6 +36,12 @@ class LocalizationTest(unittest.TestCase):
         source = (COMPONENT / "home_entity.py").read_text()
         self.assertIn("if name is not None:", source)
 
+    def test_rule_control_service_is_reversible_and_name_based(self) -> None:
+        source = (COMPONENT / "__init__.py").read_text()
+        self.assertIn('SERVICE_SET_AUTOMATION_ENABLED = "set_automation_enabled"', source)
+        self.assertIn('json_body={"disabled": not enabled}', (COMPONENT / "api.py").read_text())
+        self.assertIn("async_request_refresh", source)
+
 
 if __name__ == "__main__":
     unittest.main()

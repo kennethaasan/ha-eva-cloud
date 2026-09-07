@@ -25,3 +25,7 @@
 ## 0.2.1
 
 - Improve compatibility with live Eva hubs and CTM Lyng devices.
+## 0.4.0
+
+- Add a verified service for enabling or disabling an existing Eva rule by name.
+- Keep the rule schedule, mood target, and device membership unchanged.

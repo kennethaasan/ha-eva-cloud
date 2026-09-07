@@ -2,16 +2,31 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import dataclass
+from typing import Any
+
+import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers import config_validation as cv
 
 from .api import EvaCloudApi
 from .const import CONF_HOME_ID, PLATFORMS
 from .coordinator import EvaCloudCoordinator
+
+
+SERVICE_SET_AUTOMATION_ENABLED = "set_automation_enabled"
+SERVICE_SCHEMA = vol.Schema(
+    {
+        vol.Required("name"): cv.string,
+        vol.Required("enabled"): cv.boolean,
+    }
+)
 
 
 @dataclass
@@ -23,6 +38,71 @@ class EvaCloudRuntimeData:
 
 
 EvaCloudConfigEntry = ConfigEntry[EvaCloudRuntimeData]
+
+
+def _find_rule(coordinator: EvaCloudCoordinator, name: str) -> dict[str, Any] | None:
+    """Find a rule by its user-visible Eva name."""
+    wanted = name.casefold()
+    return next(
+        (
+            rule
+            for rule in coordinator.data.get("rules", [])
+            if isinstance(rule, dict)
+            and str(rule.get("name") or "").casefold() == wanted
+        ),
+        None,
+    )
+
+
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
+    """Register services shared by the single Eva config entry."""
+
+    async def handle_set_automation_enabled(call: ServiceCall) -> None:
+        entries = hass.config_entries.async_entries("eva_cloud")
+        if not entries:
+            raise HomeAssistantError("Eva-integrasjonen er ikke konfigurert")
+        entry = entries[0]
+        runtime = entry.runtime_data
+        name = call.data["name"]
+        enabled = call.data["enabled"]
+        rule = _find_rule(runtime.coordinator, name)
+        if rule is None or not rule.get("id"):
+            raise HomeAssistantError(f"Fant ikke Eva-automatiseringen {name!r}")
+
+        desired_disabled = not enabled
+        if (rule.get("disabled") is True) == desired_disabled:
+            return
+
+        try:
+            await runtime.api.async_set_rule_enabled(str(rule["id"]), enabled)
+            # Eva answers asynchronously (normally HTTP 202). Poll the home
+            # snapshot briefly so a vacation automation does not report success
+            # while the old rule state is still cached.
+            for attempt in range(6):
+                await runtime.coordinator.async_request_refresh()
+                updated = _find_rule(runtime.coordinator, name)
+                if updated and (updated.get("disabled") is True) == desired_disabled:
+                    return
+                if attempt < 5:
+                    await asyncio.sleep(1)
+        except Exception as error:
+            if isinstance(error, HomeAssistantError):
+                raise
+            raise HomeAssistantError(
+                f"Kunne ikke endre Eva-automatiseringen {name!r}"
+            ) from error
+
+        raise HomeAssistantError(
+            f"Eva bekreftet ikke endringen av automatiseringen {name!r}"
+        )
+
+    hass.services.async_register(
+        "eva_cloud",
+        SERVICE_SET_AUTOMATION_ENABLED,
+        handle_set_automation_enabled,
+        schema=SERVICE_SCHEMA,
+    )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: EvaCloudConfigEntry) -> bool:

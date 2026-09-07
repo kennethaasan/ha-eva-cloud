@@ -70,6 +70,7 @@ class EvaCloudApi:
         url: str,
         *,
         partitioned: bool = False,
+        json_body: Any | None = None,
     ) -> Any:
         headers = self._headers(partitioned=partitioned)
         # aiohttp defaults an empty POST/PATCH body to application/octet-stream.
@@ -79,11 +80,10 @@ class EvaCloudApi:
             headers["Content-Type"] = "application/json"
         try:
             async with asyncio.timeout(20):
-                async with self._session.request(
-                    method,
-                    url,
-                    headers=headers,
-                ) as response:
+                request_kwargs: dict[str, Any] = {"headers": headers}
+                if json_body is not None:
+                    request_kwargs["json"] = json_body
+                async with self._session.request(method, url, **request_kwargs) as response:
                     body = await response.read()
                     if response.status in (401, 403):
                         raise EvaCloudAuthenticationError
@@ -170,4 +170,17 @@ class EvaCloudApi:
             "POST",
             f"{HOME_API_URL}/homes/{home}/moods/{mood}/activate",
             partitioned=True,
+        )
+
+    async def async_set_rule_enabled(self, rule_id: str, enabled: bool) -> Any:
+        """Enable or disable an existing home automation rule."""
+        if not self.home_id:
+            raise EvaCloudRequestError
+        home = quote(self.home_id, safe="")
+        rule = quote(rule_id, safe="")
+        return await self._request(
+            "PATCH",
+            f"{HOME_API_URL}/homes/{home}/rules/{rule}",
+            partitioned=True,
+            json_body={"disabled": not enabled},
         )
