@@ -1,11 +1,14 @@
 # Changelog
 
-## Unreleased
+## 0.3.2
 
 - Add an observed OpenAPI reference for the current Eva Android API routes,
   headers, and partial payload schemas.
-- Document the observed mood edit, verification, activation, and live-device
-  value workflow.
+- Document that live device attributes such as `on` and `dimLevel` are exposed
+  in the home response and can be persisted to a mood by the observed
+  live-attribute, complete-mood-PATCH, and activation sequence.
+- Clarify that mood objects expose membership and active state, but not a
+  separate per-device value payload.
 
 ## 0.3.1
 

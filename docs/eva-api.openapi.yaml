@@ -13,15 +13,21 @@ info:
     intentionally partial, and write operations may be asynchronous. Verify
     behavior against a test home before changing the integration.
 
-    To edit an existing mood, first GET the home and locate the mood by its
-    id, then PATCH /homes/{homeId}/moods/{moodId} with the edited mood object.
-    The safest observed-app-compatible form is a complete object preserving
-    the current name, icon, room, deviceIds, and groupIds. Eva normally returns
-    202 with an actionId; GET the home again to verify the saved mood. PATCH
-    changes the mood definition or membership, while POST /activate applies an
-    existing mood. The generic device-attribute route changes a live device;
-    this reference does not claim that such a live change also updates the
-    values stored in a mood. Per-device mood-value payloads remain unconfirmed.
+    The GET /homes/{homeId} response includes current live device attributes
+    under rooms[].devices[].attributes[]. For a dimmer these include observed
+    attributes such as on and dimLevel. Mood objects expose membership and
+    active state, but do not expose a separate per-device value payload.
+
+    To edit the values applied by an existing mood, the observed compatible
+    sequence is: GET the home; set the intended live attributes for the
+    included devices using the generic device-attribute route; PATCH the
+    complete mood object preserving name, icon, room, deviceIds, and groupIds;
+    wait for the asynchronous response and GET the home to verify; then POST
+    /activate and verify the live attributes again. On a tested CTM Lyng
+    dimmer, setting on=true and then PATCHing the complete mood caused a later
+    activation to restore on=true and the current dimLevel. This indicates
+    that the complete mood update snapshots current device values, although the
+    server-side snapshot schema is not returned and may vary by app or device.
 
     Do not put Eva credentials, access tokens, home IDs, device IDs, or other
     household identifiers in this file or in issue reports.
@@ -83,26 +89,35 @@ x-eva-mood-edit-flow:
     Practical sequence for changing an existing mood without committing
     household identifiers to documentation. The exact server-side schema is
     app-version dependent; preserve fields returned by Eva and verify after
-    every asynchronous write.
+    every asynchronous write. The value-persistence behavior below is
+    observed, not an official Eva API contract.
   steps:
     - step: 1
       action: GET /homes/{homeId}
       purpose: Read the current mood and preserve its complete definition.
     - step: 2
-      action: PATCH /homes/{homeId}/moods/{moodId}
-      purpose: Send the edited name/icon/room/deviceIds/groupIds object as JSON.
+      action: POST /homes/{homeId}/devices/{deviceId}/{attribute}/{value}
+      purpose: Set the intended live values for every device included in the mood.
     - step: 3
+      action: PATCH /homes/{homeId}/moods/{moodId}
+      purpose: Send the complete name/icon/room/deviceIds/groupIds object after the live values are correct.
+    - step: 4
       action: Wait for the 202 action response
       purpose: Record actionId if returned; acceptance is not confirmation of persistence.
-    - step: 4
-      action: GET /homes/{homeId}
-      purpose: Confirm the mood now contains the intended definition.
     - step: 5
+      action: GET /homes/{homeId}
+      purpose: Confirm the mood definition and current device attributes before activation.
+    - step: 6
       action: POST /homes/{homeId}/moods/{moodId}/activate
       purpose: Apply the saved mood; editing and activation are separate operations.
+    - step: 7
+      action: GET /homes/{homeId}
+      purpose: Confirm that activation restored the intended live attributes.
   cautions:
     - Do not assume a partial PATCH preserves omitted fields across app versions.
-    - Do not assume changing a live device attribute changes the value stored by a mood.
+    - A complete mood PATCH may snapshot the current live values of all included devices; make sure every included device is in its intended state first.
+    - Do not treat the mood object as a source of per-device values; read current values from rooms[].devices[].attributes[].
+    - A 202 response means accepted for asynchronous processing, not necessarily completed.
     - Use a test mood or test home before changing heating, lighting, or other equipment.
 tags:
   - name: Users
@@ -113,10 +128,11 @@ tags:
     description: Device discovery, metadata, attributes, and measurements.
   - name: Moods
     description: |-
-      Eva mood creation, editing, activation, and membership. The observed
-      edit flow is GET home -> locate mood -> PATCH the complete edited mood
-      object -> wait for the asynchronous action -> GET home to verify. Use
-      POST /activate separately to apply the saved mood.
+      Eva mood creation, editing, activation, and membership. Mood objects
+      expose membership rather than per-device values. To persist desired
+      values, set live device attributes first, PATCH the complete mood object,
+      wait for the asynchronous action, verify, and use POST /activate
+      separately to apply the saved mood.
   - name: Rooms and groups
     description: Room ordering and device-group management.
   - name: Rules
@@ -276,7 +292,11 @@ paths:
       summary: Get a home and its devices
       responses:
         '200':
-          description: Home state and configuration.
+          description: |-
+            Home state and configuration. The response includes current device
+            attributes under rooms[].devices[].attributes[], including values
+            such as on, dimLevel, and thermostat setpoints when supported by a
+            device.
           content:
             application/json:
               schema:
@@ -595,7 +615,11 @@ paths:
       tags: [Devices]
       operationId: setDeviceAttribute
       summary: Set a device attribute
-      description: Primary device-control route used by the current Home Assistant integration.
+      description: |-
+        Primary device-control route used by the current Home Assistant
+        integration. Attribute names and values are device-specific; discover
+        them from the attributes array in GET /homes/{homeId}. Observed dimmer
+        names include on and dimLevel. This route changes the live device state.
       requestBody:
         $ref: '#/components/requestBodies/OptionalGenericObject'
       responses:
@@ -775,9 +799,12 @@ paths:
         preserve the complete mood object, change only the intended fields,
         and send JSON with PATCH. A successful response is normally HTTP 202
         and may contain an actionId; it is asynchronous, so GET the home again
-        before treating the edit as persisted. This route changes mood
-        metadata and membership. The per-device state/value snapshot format,
-        if distinct from deviceIds/groupIds, is not confirmed by this reference.
+        before treating the edit as persisted. The body changes mood metadata
+        and membership, while the observed value-persistence flow is to set
+        live device attributes first and then send this complete mood object.
+        A tested CTM Lyng dimmer retained its current on and dimLevel values on
+        a later activation. The server-side snapshot format is not returned by
+        this API and is not an official contract.
       requestBody:
         $ref: '#/components/requestBodies/EditMood'
       responses:
@@ -1407,8 +1434,10 @@ components:
         rather than sending only the changed property. The path moodId is the
         authoritative identifier; the optional body moodId, when present,
         should match it. deviceIds and groupIds describe membership. This
-        schema does not establish a generic field for per-device setpoints or
-        dimmer levels; those values remain app-version dependent.
+        schema does not contain per-device setpoints or dimmer levels. To
+        persist those values, set live attributes first and then PATCH this
+        complete mood object; the observed server behavior snapshots the
+        current values for later activation.
     HomeList:
       type: object
       additionalProperties: true
@@ -1478,15 +1507,23 @@ components:
         online:
           type: boolean
         attributes:
+          description: Current live device attributes. These values are also
+            the inputs used by the observed mood-value persistence sequence.
           type: array
           items:
             $ref: '#/components/schemas/DeviceAttribute'
     DeviceAttribute:
       type: object
       additionalProperties: true
+      description: |-
+        Current live attribute and its control metadata. Observed names include
+        on for power state and dimLevel for dimmers; thermostats expose their
+        own device-specific setpoint and measurement attributes. The same
+        attribute route is used to write a live value.
       properties:
         name:
           type: string
+          example: dimLevel
         value:
           oneOf:
             - type: string
@@ -1522,6 +1559,10 @@ components:
     Mood:
       type: object
       additionalProperties: true
+      description: |-
+        Saved mood metadata and membership. The home response does not expose
+        a separate per-device value map. Current values are found on the live
+        device objects in rooms[].devices[].attributes[].
       properties:
         id:
           type: string
