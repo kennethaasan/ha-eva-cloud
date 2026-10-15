@@ -18,6 +18,17 @@ example `Morgen`) without changing the rule's schedule, target mood, or device
 membership. The service is intended for guarded vacation-mode automations;
 Home Assistant verifies the new rule state by refreshing the home snapshot.
 
+The active-moods sensor's `moods` attribute reports current device-state matches,
+not activation events. Its separate `recent_mood_activations` attribute exposes
+the API's recent explicit activations as UTC `timestamp`, `mood`, and expanded
+`device_ids`, plus the separate current `matches_current_state` flag. This
+includes wall buttons, schedules and app activations without
+guessing the actor. The current API client requests Norwegian; only its observed
+`Stemning aktivert` event title is recognized. The short server event feed can
+omit older events, especially after outages. A time/device correlation is useful
+for coexistence but is not proof that an individual thermostat command came from
+the mood. Do not use state matches alone to override a person's manual choice.
+
 ## Language support
 
 The config flow and integration-owned entity names are available in English and

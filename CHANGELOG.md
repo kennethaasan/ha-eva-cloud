@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2
+
+- Expose timestamped `recent_mood_activations` and affected device membership on
+  the active-moods sensor, separately from its existing state-match `moods`.
+- Parse only the observed activation title from the Norwegian API event feed;
+  reject unknown moods, incomplete group membership and invalid timestamps.
+- Wall buttons, schedules and app mood activations have the same semantics;
+  the feed does not provide actor attribution or saved per-device mood values.
+
 ## 0.3.2
 
 - Add an observed OpenAPI reference for the current Eva Android API routes,

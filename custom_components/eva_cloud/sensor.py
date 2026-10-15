@@ -28,6 +28,7 @@ from .const import CONF_HOME_NAME
 from .entity import EvaCloudEntity
 from .home_entity import EvaHomeEntity
 from .models import attribute, attribute_value, devices
+from .mood_events import mood_activations
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -194,8 +195,9 @@ class EvaActiveMoodsSensor(EvaHomeEntity, SensorEntity):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """List the active mood names."""
-        return {"moods": self.active_moods}
+        """Keep current matches separate from explicit, timestamped activations."""
+        return {"moods": self.active_moods,
+                "recent_mood_activations": mood_activations(self.coordinator.data)}
 
 
 class EvaCloudSensor(EvaCloudEntity, SensorEntity):
